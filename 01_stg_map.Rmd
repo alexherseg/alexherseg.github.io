@@ -1,5 +1,5 @@
 ---
-title: "Simple Tile Grid Map"
+title: "Square Tile Grid Map"
 output: html_notebook
 ---
 
@@ -8,7 +8,19 @@ This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
 
 ```{r}
-plot(cars)
+setwd("C:/Users/alexherseg/Downloads/tilegridmaps/")
+states <- read.csv("states.csv")
+
+library(RColorBrewer)
+palette <- brewer.pal(9, "PuRd")[5:9] # [c(0:4*2+1)]
+
+x <- "nyt_x"
+y <- "nyt_y"
+par(mar = c(0,0,0,0))
+plot(0, 0, type="n", xlab="", ylab="", xlim=c(-0.6,13), ylim=c(-0.5,8), asp=1, bty="n", axes=FALSE)
+symbols(x = states[, x], y = states[, y], circles = rep(0.5, 51), fg = "white", lwd = 1.5, bg = sample(palette, size = 51, replace = T), inches = F, add = T)
+text(states[, x],states[, y], states$STUSPS, col = "white", cex = 0.8)
+
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
