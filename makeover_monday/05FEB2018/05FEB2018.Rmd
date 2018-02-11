@@ -8,7 +8,7 @@ output: html_document
 
 <h3> Comments </h3>
 
-For this week's Makeover Monday, I came across Yanning Wang's elegant [area bump chart](https://public.tableau.com/profile/yanning.wang#!/vizhome/MM2018Week6/YW), and I decided to (mostly) recreate the chart in R. A quick google search did not yield satisfactory results for an R package that could make this type of chart, so I decided to implement it myself (the resulting plot is displayed above and the code is below).
+For this week's [Makeover Monday](http://makeovermonday.co.uk/), I came across Yanning Wang's elegant [area bump chart](https://public.tableau.com/profile/yanning.wang#!/vizhome/MM2018Week6/YW), and I decided to (mostly) recreate the chart in R. A quick google search did not yield satisfactory results for an R package that could make this type of chart, so I decided to implement it myself (the resulting plot is displayed above and the code is below).
 
 Overall, I'm happy with plot. I like that it shows the relative proportions of each race/ethnicity, but also places them in order so that we can see that Latinos have become the second leading ethnicity in the league.
 
@@ -125,9 +125,11 @@ ggplot(df, aes(x, y)) +
   scale_y_continuous(name = "", breaks = seq(0, 1, 0.2), labels = percent) +
   ggtitle("The Race/Ethnicity of MLB Players", 
           subtitle = "For years 1947 to 2016") +
+  labs(caption = "Source: SABR.org") +
   guides(fill = FALSE) +
   theme_minimal() +
   theme(axis.title.x = element_text(hjust=0.015),
-        axis.title.y = element_text(hjust=0.95)) +
+        axis.title.y = element_text(hjust=0.95),
+        plot.caption = element_text(hjust = 0)) +
   geom_text(data = label_df, aes(x, y, label = Race), size = 3, hjust = 1)
 ```
