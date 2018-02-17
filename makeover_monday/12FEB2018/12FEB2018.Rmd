@@ -4,9 +4,7 @@ output:
   pdf_document: default
 ---
 
-<div style="width:12in; height=8in">
 ![](./12FEB2018.png){width=100%}
-</div>
 
 <h3> Makeover Monday: Feb 12, 2018 </h3>
 
