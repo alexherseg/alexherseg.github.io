@@ -1,0 +1,107 @@
+---
+output:
+  html_document: default
+---
+
+![](./26FEB2018.png)
+
+<h3> Makeover Monday: Feb 26, 2018 </h3>
+
+<h3> Comments </h3>
+
+This week's [Makeover Monday](http://makeovermonday.co.uk/) featured a rich dataset on economic freedom. I focused on the the most recent 15 years, and I looked at countries who have declined in freedom according to the summary index at two points in time, 2000 vs 2015. 
+
+I'm a big fan of these type of dot plots; they convey a lot of information in a clear and concise manner. The one downside is that these plots don't display variablity very well. I tried adding data from the years 2005 and 2010, but because the economic summary index is highly variable, the economic indicator dots jumped around, and made the plot hard to read. If I wanted to plot more than just data from 2000 and 2015, a line chart would have been a better choice. 
+
+<h3> Code </h3>
+
+```{r code, eval=FALSE, echo=TRUE}
+# libraries ----
+library(data.world)
+library(dplyr)
+library(ggplot2)
+library(grid)
+
+
+
+# data ----
+# Datasets are referenced by their URL or path
+dataset_key <- "https://data.world/makeovermonday/2018w9-world-economic-freedom"
+# List tables available for SQL queries
+tables_qry <- data.world::qry_sql("SELECT * FROM Tables")
+tables_df <- data.world::query(tables_qry, dataset = dataset_key)
+
+if (length(tables_df$tableName) > 0) {
+  data_qry <- data.world::qry_sql(sprintf("SELECT * FROM `%s`", tables_df$tableName[[1]]))
+  prelim_data <- data.world::query(data_qry, dataset = dataset_key)
+}
+
+
+
+# data preparation ----
+
+# subset data to years 2000 and 2015
+dat <- prelim_data %>% 
+  filter(year %in% seq(2000, 2015, 15)) %>%
+  arrange(countries, year) %>%
+  select(year, countries, summary_index)
+
+# find countries that have declined in economic summary index
+lost_freedom <- dat %>%
+  tidyr::spread(key = year, summary_index) %>%
+  filter(`2000` > `2015`) %>%
+  select(countries)
+
+# subset data to only these countries
+lf_dat <- dat %>%
+  filter(countries %in% lost_freedom$countries)
+
+# find order of data according to summary index
+order_2015 <- lf_dat %>%
+  filter(year == 2015) %>%
+  arrange(summary_index) %>%
+  select(countries)
+
+# put countries in order
+lf_dat$countries <- factor(lf_dat$countries, levels = order_2015$countries)
+# turn year into a factor
+lf_dat$year <- factor(lf_dat$year, levels = c("2015", "2000"))
+
+
+
+# plot ----
+
+# lineplot
+p <- ggplot(lf_dat, aes(countries, summary_index, group = countries)) +
+  geom_line(col = "gray95", size = 2) +
+  geom_point(aes(col=year), size = 2.1, alpha = 1) +
+  scale_color_manual(name = "",
+                     values = c("2000" = "#9e9ac8", #"#fe9929",
+                                "2015" = "#54278f")) +
+  coord_flip() +
+  ggtitle("Economic Freedom Decline",
+          subtitle = "Countries with lower indeces of economic freedom since the turn of the century. \n  ") +
+  labs(y = "Freedom Index", x = "", caption = "Source: Fraser Institute") +
+  theme_minimal() +
+  guides(color=FALSE)+
+  theme(panel.grid = element_blank(),
+        plot.title = element_text(size = 17),
+        plot.subtitle = element_text(size = 12),
+        plot.caption = element_text(hjust = 0, size = 12))
+
+# save plot to png
+png("./26FEB2018.png",
+    width = 8, height= 7, units = "in", res = 1200)
+p
+# add legend below plot subtitle
+pushViewport(viewport(x = 0.5, y = 0.9125, width = 0.25, height = 0.05))
+grid.lines(x = c(0.35, 0.85), y = c(0.5, 0.5),
+           gp = gpar(col = "gray90", lwd = 7))
+grid.points(x = c(0.35, 0.85), y = c(0.5, 0.5), pch = 16,
+            gp = gpar(col = c("#54278f", "#9e9ac8"))) # "#fe9929"
+grid.text(label = c("2015", "2000"), x = c(0.10, 0.95), y = c(0.5, 0.5), 
+          just = "left", 
+          gp = gpar(fontsize = 10, col = "grey20"))
+popViewport()
+dev.off()
+```
