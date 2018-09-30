@@ -1,0 +1,110 @@
+---
+output: html_document
+---
+
+```{r plot, echo=FALSE, eval=TRUE, warning=FALSE, message=FALSE, fig.align='center',fig.width=8, fig.height = 6}
+# libraries ----
+library(data.world)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+
+# data import ----
+
+# Datasets are referenced by their URL or path
+dataset_key <- "https://data.world/makeovermonday/2018w17-ecological-footprint-per-capita"
+# List tables available for SQL queries
+tables_qry <- data.world::qry_sql("SELECT * FROM Tables")
+tables_df <- data.world::query(tables_qry, dataset = dataset_key)
+
+if (length(tables_df$tableName) > 0) {
+  data_qry <- data.world::qry_sql(sprintf("SELECT * FROM `%s`", tables_df$tableName[[1]]))
+  prelim_data <- data.world::query(data_qry, dataset = dataset_key)
+}
+
+
+
+# data preparation ----
+dat <- prelim_data %>%
+  filter(record == "EFConsTotGHA", country != "World") %>%
+  select(country, year, total) 
+
+
+
+# plot ----
+ggplot(dat, aes(year, total/1000000000)) +
+  geom_line(aes(group = country), color = "gray80") +
+  geom_line(data=filter(dat, country == "United States of America"),
+            aes(year, total/1000000000), color = "#636363", size = 1.2) +
+  geom_line(data=filter(dat, country == "China"),
+          aes(year, total/1000000000), color = "#7fcdbb", size = 1.2) +
+  geom_text(data = data.frame(x = c(2014, 2014),
+                              y = c(5.39, 2.87),
+                              country = c("China", "U.S.")),
+            aes(x, y, label = country), col = "gray60") +
+  scale_x_continuous(name = "Year", breaks = seq(1960, 2012, 5)) +
+  scale_y_continuous(breaks = 0:5)+
+  ggtitle("China's Ecological Footprint Surpasses U.S.") +
+  labs(y = "Hectares", caption = "Source: Global Footprint Network") +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        plot.caption = element_text(hjust = 0))
+```
+
+<h3> Makeover Monday: Apr 23, 2018 </h3>
+
+<h3> Comments </h3>
+
+I made an R version of @[charliehtableau](https://public.tableau.com/profile/charlie.hutcheson#!/vizhome/MMEcoFootprint/Dashboard2?publish=yes)'s data viz for this week's Makeover Monday.
+
+<h3> Code </h3>
+
+```{r code, echo=TRUE, eval=FALSE}
+# libraries ----
+library(data.world)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+
+# data import ----
+
+# Datasets are referenced by their URL or path
+dataset_key <- "https://data.world/makeovermonday/2018w17-ecological-footprint-per-capita"
+# List tables available for SQL queries
+tables_qry <- data.world::qry_sql("SELECT * FROM Tables")
+tables_df <- data.world::query(tables_qry, dataset = dataset_key)
+
+if (length(tables_df$tableName) > 0) {
+  data_qry <- data.world::qry_sql(sprintf("SELECT * FROM `%s`", tables_df$tableName[[1]]))
+  prelim_data <- data.world::query(data_qry, dataset = dataset_key)
+}
+
+
+
+# data preparation ----
+dat <- prelim_data %>%
+  filter(record == "EFConsTotGHA", country != "World") %>%
+  select(country, year, total) 
+
+
+# plot ----
+ggplot(dat, aes(year, total/1000000000)) +
+  geom_line(aes(group = country), color = "gray80") +
+  geom_line(data=filter(dat, country == "United States of America"),
+            aes(year, total/1000000000), color = "#636363", size = 1.2) +
+  geom_line(data=filter(dat, country == "China"),
+          aes(year, total/1000000000), color = "#7fcdbb", size = 1.2) +
+  geom_text(data = data.frame(x = c(2014, 2014),
+                              y = c(5.39, 2.87),
+                              country = c("China", "U.S.")),
+            aes(x, y, label = country), col = "gray60") +
+  scale_x_continuous(name = "Year", breaks = seq(1960, 2012, 5)) +
+  scale_y_continuous(breaks = 0:5)+
+  ggtitle("China's Ecological Footprint Surpasses U.S.") +
+  labs(y = "Hectares", caption = "Source: Global Footprint Network") +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank(),
+        plot.caption = element_text(hjust = 0))
+```
