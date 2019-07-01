@@ -1,0 +1,116 @@
+---
+output: html_document
+---
+
+![](./output.gif){width=100%}
+
+<h3> Makeover Monday: July 9, 2018 </h3>
+
+<h3> Comments </h3>
+
+I wasn't sure what to do with this week's makeover monday, and I ended up creating another gif. The bad news is that the package I use ('gganimate') has undergone major updates so the code I use will only work on the previous versions of the package. I included installation instructions if you want to use this code. I will need to  familiarize myself with the new package api.
+
+Also, I need to credit [Valentin](https://twitter.com/VaS529) because I used his [code]((https://seethedatablog.wordpress.com/2016/12/23/r-simple-world-map-robinson-ggplot/)) to get this really nice Robinson projection map. Thanks.
+
+<h3> Code </h3>
+
+```{r code, echo=TRUE, eval=FALSE}
+# libraries ----
+library(sp)
+library(rgdal)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(classInt)
+library(gganimate)
+library(data.world)
+
+# install previous version of gganimate ----
+# packageurl <- "https://github.com/thomasp85/gganimate/archive/v0.1.1.tar.gz"
+# install.packages(packageurl, repos=NULL, type="source")
+
+
+
+# data import ----
+
+# datasets are referenced by their URL or path
+dataset_key <- "https://data.world/makeovermonday/2018w28-volcano-eruptions"
+# List tables available for SQL queries
+tables_qry <- data.world::qry_sql("SELECT * FROM Tables")
+tables_df <- data.world::query(tables_qry, dataset = dataset_key)
+
+if (length(tables_df$tableName) > 0) {
+  data_qry <- data.world::qry_sql(sprintf("SELECT * FROM `%s`", tables_df$tableName[[1]]))
+  prelim_data <- data.world::query(data_qry, dataset = dataset_key)
+}
+
+
+
+# data prep ----
+
+# separate 'last_known_eruption' into two variables
+dat <- prelim_data %>%
+  separate(last_known_eruption, c("Year", "Time"))
+
+# adjust the years
+dat$Year[dat$Year == "Unknown"] <- NA
+dat$Year <- as.numeric(dat$Year)
+dat$yr <- if_else(dat$Time == "BCE", dat$Year*-1, dat$Year)
+
+# only want the eruptions in the twentieth century
+dat <- dat %>%
+  filter(yr >=1900)
+
+
+
+# plot in two parts 
+
+# part 1. map preparation ----
+# (the code in this section comes from the link in the description above)
+load(url("https://github.com/valentinitnelav/RandomScripts/blob/master/NaturalEarth.RData?raw=true"))
+
+# projection string
+PROJ <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs" 
+# or use the short form "+proj=robin"
+NE_countries_rob  <- spTransform(NE_countries, CRSobj = PROJ)
+NE_graticules_rob <- spTransform(NE_graticules, CRSobj = PROJ)
+NE_box_rob        <- spTransform(NE_box, CRSobj = PROJ)
+
+# project long-lat coordinates for graticule label data frames 
+# (two extra columns with projected XY are created)
+prj.coord <- project(cbind(lbl.Y$lon, lbl.Y$lat), proj=PROJ)
+lbl.Y.prj <- cbind(prj.coord, lbl.Y)
+names(lbl.Y.prj)[1:2] <- c("X.prj","Y.prj")
+
+prj.coord <- project(cbind(lbl.X$lon, lbl.X$lat), proj=PROJ)
+lbl.X.prj <- cbind(prj.coord, lbl.X)
+names(lbl.X.prj)[1:2] <- c("X.prj","Y.prj")
+
+# also need to project my data
+dat_proj <- project(as.matrix(dat[,c("longitude", "latitude")]), proj = PROJ)
+dat_proj_df <- as.data.frame(dat_proj)
+dat_proj_df <- cbind(dat_proj_df, dat$Year)
+names(dat_proj_df)[3] <- "Year"
+
+# part 2. final map gif ----
+
+p <- ggplot() +
+  geom_polygon(data=NE_countries_rob, aes(long,lat, group=group), colour="black", fill="gray90", size = 0.25) +
+  geom_polygon(data=NE_box_rob, aes(x=long, y=lat), colour="black", fill="transparent", size = 0.25) +
+  geom_path(data=NE_graticules_rob, aes(long, lat, group=group), linetype="dotted", color="grey50", size = 0.25) +
+  coord_fixed(ratio = 1) +
+  geom_point(data = dat_proj_df, aes(longitude, latitude, cumulative = T, frame = Year), 
+             color = "gray50", alpha = 0.5, size = 3)+
+  geom_point(data = dat_proj_df, aes(longitude, latitude, frame = Year), 
+             color = "black", size = 5)+
+  geom_point(data = dat_proj_df, aes(longitude, latitude, frame = Year), 
+             color = "#f03b20", size = 3)+
+  ggtitle("Most recent volcano eruptions dating back to the 20th Century") +
+  labs(caption = "Source: Global Volcanism Program") +
+  scale_color_identity() +
+  theme_void() +
+  theme(plot.caption = element_text(hjust = 0, size = 16),
+        plot.title = element_text(size = 18))
+
+gganimate(p, filename = "output.gif", interval = 1.0, ani.width=1000, ani.height=600)
+```
